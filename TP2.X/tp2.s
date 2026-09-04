@@ -1,3 +1,273 @@
+        LIST    P=16F887
+        #include <P16F887.INC>
+
+
+; VARIABLES
+
+CONTADOR    EQU     0x20
+SECUENCIA   EQU     0x21
+MODO        EQU     0x22
+RUN         EQU     0x23
+SENTIDO     EQU     0x24
+
+RET_EXT     EQU     0x25
+RET_INT     EQU     0x26
+RET_SEC     EQU     0x27
 
 
 
+        ORG     0x0000
+        GOTO    INICIO
+
+	ORG	0x0006
+
+INICIO:
+
+        BANKSEL ANSEL
+        CLRF    ANSEL
+
+        BANKSEL ANSELH
+        CLRF    ANSELH
+
+
+        BANKSEL TRISB
+        CLRF    TRISB
+
+        BANKSEL TRISE
+        MOVLW   0xFF
+        MOVWF   TRISE
+
+
+        BANKSEL CONTADOR
+        CLRF    CONTADOR
+        CLRF    MODO
+        CLRF    RUN
+        CLRF    SENTIDO
+
+        MOVLW   0x01
+        MOVWF   SECUENCIA
+
+        BANKSEL PORTB
+        CLRF    PORTB
+
+PRINCIPAL:
+
+        BANKSEL PORTE
+        BTFSS   PORTE,0
+        CALL    CAMBIAR_MODO
+
+        BANKSEL PORTE
+        BTFSS   PORTE,1
+        CALL    BOTON_ACCION
+
+        BANKSEL PORTE
+        BTFSS   PORTE,2
+        CALL    CAMBIAR_SENTIDO
+
+        BANKSEL MODO
+
+	BTFSS   MODO,0
+	GOTO    MODO_CONTADOR
+	GOTO    MODO_SECUENCIA
+
+MODO_CONTADOR:
+
+        BANKSEL CONTADOR
+        MOVF    CONTADOR,W
+
+        BANKSEL PORTB
+        MOVWF   PORTB
+
+        GOTO    PRINCIPAL
+
+MODO_SECUENCIA:
+    
+        BANKSEL SECUENCIA
+        MOVF    SECUENCIA,W
+
+        BANKSEL PORTB
+        MOVWF   PORTB
+
+        BANKSEL RUN
+        MOVF    RUN,F
+
+        BTFSC   STATUS,Z
+        GOTO    PRINCIPAL
+
+
+        CALL    RETARDO_SECUENCIA
+
+
+        BANKSEL SENTIDO
+        MOVF    SENTIDO,F
+
+        BTFSC   STATUS,Z
+        GOTO    ROTAR_DERECHA
+
+        GOTO    ROTAR_IZQUIERDA
+
+
+ROTAR_IZQUIERDA:
+
+        BANKSEL SECUENCIA
+
+        BCF     STATUS,C
+
+        BTFSC   SECUENCIA,7
+        BSF     STATUS,C
+
+        RLF     SECUENCIA,F
+
+        GOTO    PRINCIPAL
+
+ROTAR_DERECHA:
+
+        BANKSEL SECUENCIA
+
+        BCF     STATUS,C
+
+        BTFSC   SECUENCIA,0
+        BSF     STATUS,C
+
+        RRF     SECUENCIA,F
+
+        GOTO    PRINCIPAL
+
+CAMBIAR_MODO:
+
+        BANKSEL MODO
+
+        MOVLW   0x01
+        XORWF   MODO,F
+
+
+ESPERAR_LIB_MODO:
+
+        BANKSEL PORTE
+        BTFSS   PORTE,0
+        GOTO    ESPERAR_LIB_MODO
+
+        RETURN
+
+BOTON_ACCION:
+
+        BANKSEL MODO
+        MOVF    MODO,F
+
+        BTFSS   STATUS,Z
+        GOTO    ACCION_SECUENCIA
+
+ACCION_CONTADOR:
+
+        CALL    RETARDO_ANTIRREBOTE
+
+        BANKSEL PORTE
+        BTFSC   PORTE,1
+        RETURN
+
+
+        BANKSEL CONTADOR
+        INCF    CONTADOR,F
+
+        MOVF    CONTADOR,W
+
+        BANKSEL PORTB
+        MOVWF   PORTB
+
+
+ESPERAR_LIB_CONTADOR:
+
+        BANKSEL PORTE
+
+        BTFSS   PORTE,1
+        GOTO    ESPERAR_LIB_CONTADOR
+
+        CALL    RETARDO_ANTIRREBOTE
+
+        RETURN
+
+
+
+ACCION_SECUENCIA:
+
+        BANKSEL RUN
+
+        MOVLW   0x01
+        XORWF   RUN,F
+
+
+ESPERAR_LIB_ACCION_SEC:
+
+        BANKSEL PORTE
+
+        BTFSS   PORTE,1
+        GOTO    ESPERAR_LIB_ACCION_SEC
+
+        RETURN
+
+CAMBIAR_SENTIDO:
+
+
+        BANKSEL MODO
+        MOVF    MODO,F
+
+        BTFSC   STATUS,Z
+        GOTO    ESPERAR_LIB_SENTIDO
+
+        BANKSEL SENTIDO
+
+        MOVLW   0x01
+        XORWF   SENTIDO,F
+
+
+ESPERAR_LIB_SENTIDO:
+
+        BANKSEL PORTE
+
+        BTFSS   PORTE,2
+        GOTO    ESPERAR_LIB_SENTIDO
+
+        RETURN
+
+RETARDO_ANTIRREBOTE:
+
+        BANKSEL RET_EXT
+
+        MOVLW   0x19
+        MOVWF   RET_EXT
+
+
+LAZO_EXT:
+
+        CLRF    RET_INT
+
+
+LAZO_INT:
+
+        DECFSZ  RET_INT,F
+        GOTO    LAZO_INT
+
+        DECFSZ  RET_EXT,F
+        GOTO    LAZO_EXT
+
+        RETURN
+
+RETARDO_SECUENCIA:
+
+        BANKSEL RET_SEC
+
+        MOVLW   0x05
+        MOVWF   RET_SEC
+
+
+LAZO_SEC:
+
+        CALL    RETARDO_ANTIRREBOTE
+
+        DECFSZ  RET_SEC,F
+        GOTO    LAZO_SEC
+
+        RETURN
+
+
+        END
