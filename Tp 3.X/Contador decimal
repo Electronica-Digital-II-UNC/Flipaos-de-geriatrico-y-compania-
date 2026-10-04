@@ -1,27 +1,9 @@
         LIST    P=16F877A
         INCLUDE <P16F877A.INC>
 
-        ORG     0x00
-
 ;--------------------------------
 ; CONFIGURACIÓN
 ;--------------------------------
-        BSF     STATUS,RP0
-
-        MOVLW   0x06
-        MOVWF   ADCON1
-
-        CLRF    TRISA           ; PORTA salida
-        CLRF    TRISC           ; PORTC salida
-
-        BCF     STATUS,RP0
-
-        CLRF    PORTA
-        CLRF    PORTC
-
-        CLRF    0x20            ; UNIDAD
-        CLRF    0x21            ; DECENA
-
 
 ;--------------------------------
 ; PROGRAMA PRINCIPAL
