@@ -1,1 +1,96 @@
+        LIST    P=16F877A
+        INCLUDE <P16F877A.INC>
 
+        ORG     0x00
+
+;--------------------------------
+; CONFIGURACIÓN
+;--------------------------------
+        BSF     STATUS,RP0
+
+        MOVLW   0x06
+        MOVWF   ADCON1
+
+        CLRF    TRISA           ; PORTA salida
+        CLRF    TRISC           ; PORTC salida
+
+        BCF     STATUS,RP0
+
+        CLRF    PORTA
+        CLRF    PORTC
+
+        CLRF    0x20            ; UNIDAD
+        CLRF    0x21            ; DECENA
+
+
+;--------------------------------
+; PROGRAMA PRINCIPAL
+;--------------------------------
+INICIO
+
+;----- MOSTRAR UNIDAD -----
+
+        BCF     PORTC,1         ; apaga decena
+
+        MOVF    0x20,W
+        CALL    TABLA
+        MOVWF   PORTA
+
+        BSF     PORTC,0         ; prende unidad
+
+
+;----- MOSTRAR DECENA -----
+
+        BCF     PORTC,0         ; apaga unidad
+
+        MOVF    0x21,W
+        CALL    TABLA
+        MOVWF   PORTA
+
+        BSF     PORTC,1         ; prende decena
+
+
+;--------------------------------
+; INCREMENTAR CONTADOR
+;--------------------------------
+
+        INCF    0x20,F          ; unidad++
+
+        MOVLW   .10
+        SUBWF   0x20,W
+
+        BTFSS   STATUS,Z
+        GOTO    INICIO
+
+        CLRF    0x20            ; unidad = 0
+        INCF    0x21,F          ; decena++
+
+        MOVLW   .10
+        SUBWF   0x21,W
+
+        BTFSS   STATUS,Z
+        GOTO    INICIO
+
+        CLRF    0x21            ; decena = 0
+
+        GOTO    INICIO
+
+
+;--------------------------------
+; TABLA 7 SEGMENTOS
+;--------------------------------
+TABLA
+        ADDWF   PCL,F
+
+        RETLW   B'00111111'     ; 0
+        RETLW   B'00000110'     ; 1
+        RETLW   B'01011011'     ; 2
+        RETLW   B'01001111'     ; 3
+        RETLW   B'01100110'     ; 4
+        RETLW   B'01101101'     ; 5
+        RETLW   B'01111101'     ; 6
+        RETLW   B'00000111'     ; 7
+        RETLW   B'01111111'     ; 8
+        RETLW   B'01101111'     ; 9
+
+        END
